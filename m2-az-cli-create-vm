@@ -1,0 +1,14 @@
+az vm create \
+  --resource-group Demo \
+  --name myVM \
+  --image UbuntuLTS \
+  --admin-username azureuser \
+  --generate-ssh-keys \
+  --tags env[dev]
+
+az vm open-port --port 80 --resource-group Demo --name myVM
+
+ssh azureuser@20.185.57.32
+
+sudo apt-get -y update
+sudo apt-get -y install nginx
