@@ -1,0 +1,104 @@
+# Assumes Resource group called "Demo2"
+
+# Create a subnet configuration
+$subnetConfig = New-AzVirtualNetworkSubnetConfig `
+  -Name "mySubnet" `
+  -AddressPrefix 192.168.1.0/24
+
+# Create a virtual network
+$vnet = New-AzVirtualNetwork `
+  -ResourceGroupName "Demo2" `
+  -Location "EastUS" `
+  -Name "myVNET" `
+  -AddressPrefix 192.168.0.0/16 `
+  -Subnet $subnetConfig
+
+# Create a public IP address and specify a DNS name
+$pip = New-AzPublicIpAddress `
+  -ResourceGroupName "Demo2" `
+  -Location "EastUS" `
+  -AllocationMethod Static `
+  -Name "mypublicdns$(Get-Random)"
+
+# Create an inbound network security group rule for port 22
+$nsgRuleSSH = New-AzNetworkSecurityRuleConfig `
+  -Name "myNetworkSecurityGroupRuleSSH"  `
+  -Protocol "Tcp" `
+  -Direction "Inbound" `
+  -Priority 1000 `
+  -SourceAddressPrefix * `
+  -SourcePortRange * `
+  -DestinationAddressPrefix * `
+  -DestinationPortRange 22 `
+  -Access "Allow"
+
+# Create an inbound network security group rule for port 80
+$nsgRuleWeb = New-AzNetworkSecurityRuleConfig `
+  -Name "myNetworkSecurityGroupRuleWWW"  `
+  -Protocol "Tcp" `
+  -Direction "Inbound" `
+  -Priority 1001 `
+  -SourceAddressPrefix * `
+  -SourcePortRange * `
+  -DestinationAddressPrefix * `
+  -DestinationPortRange 80 `
+  -Access "Allow"
+
+# Create a network security group
+$nsg = New-AzNetworkSecurityGroup `
+  -ResourceGroupName "Demo2" `
+  -Location "EastUS" `
+  -Name "myNetworkSecurityGroup" `
+  -SecurityRules $nsgRuleSSH,$nsgRuleWeb
+  
+  
+ # Create a virtual network card and associate with public IP address and NSG
+$nic = New-AzNetworkInterface `
+  -Name "myNic" `
+  -ResourceGroupName "Demo2" `
+  -Location "EastUS" `
+  -SubnetId $vnet.Subnets[0].Id `
+  -PublicIpAddressId $pip.Id `
+  -NetworkSecurityGroupId $nsg.Id
+  
+ # Define a credential object
+$securePassword = ConvertTo-SecureString 'MyP@ssw0rd1527' -AsPlainText -Force
+$cred = New-Object System.Management.Automation.PSCredential ("azureuser", $securePassword)
+
+
+# Create a virtual machine configuration
+$vmConfig = New-AzVMConfig `
+  -VMName "myVM" `
+  -VMSize "Standard_D1" | `
+Set-AzVMOperatingSystem `
+  -Linux `
+  -ComputerName "myVM" `
+  -Credential $cred `
+  -DisablePasswordAuthentication | `
+Set-AzVMSourceImage `
+  -PublisherName "Canonical" `
+  -Offer "UbuntuServer" `
+  -Skus "18.04-LTS" `
+  -Version "latest" | `
+Add-AzVMNetworkInterface `
+  -Id $nic.Id
+
+# Configure the SSH key
+$sshPublicKey = cat ~/.ssh/id_rsa.pub
+Add-AzVMSshPublicKey `
+  -VM $vmconfig `
+  -KeyData $sshPublicKey `
+  -Path "/home/azureuser/.ssh/authorized_keys"
+
+# Create the VM
+New-AzVM `
+  -ResourceGroupName "Demo2" `
+  -Location eastus -VM $vmConfig
+  
+ # Get the VM's public IP
+ Get-AzPublicIpAddress -ResourceGroupName "Demo2" | Select "IpAddress"
+ 
+# Update the VM and install nginx
+sudo apt-get -y update && sudo apt-get -y install nginx
+
+# Now browse to the VM's public IP and you should have nginx installed and running
