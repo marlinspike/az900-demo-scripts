@@ -3,12 +3,13 @@ az vm create \
   --name myVM \
   --image UbuntuLTS \
   --admin-username azureuser \
-  --generate-ssh-keys \
+  --ssh-key-values ~/.ssh/id_rsa.pub \
   --tags env[dev]
+
+# Use --generate-ssh-keys if you want CLI to create your key pairs for you
 
 az vm open-port --port 80 --resource-group Demo --name myVM
 
 ssh azureuser@20.185.57.32
 
-sudo apt-get -y update
-sudo apt-get -y install nginx
+sudo apt-get -y update && sudo apt-get -y install nginx
