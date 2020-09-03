@@ -10,6 +10,7 @@ az vm create \
 
 az vm open-port --port 80 --resource-group Demo --name myVM
 
-ssh azureuser@20.185.57.32
+# Use the ip address of the VM here, instead of the one listed below
+ssh azureuser@20.185.46.40
 
 sudo apt-get -y update && sudo apt-get -y install nginx
