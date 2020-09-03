@@ -4,7 +4,7 @@ az vm create \
   --image UbuntuLTS \
   --admin-username azureuser \
   --ssh-key-values ~/.ssh/id_rsa.pub \
-  --tags env[dev]
+  --tags env=dev
 
 # Use --generate-ssh-keys if you want CLI to create your key pairs for you
 
